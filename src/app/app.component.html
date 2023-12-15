@@ -1,20 +1,20 @@
 <div class="container">
-  <div id="labelInput" class="col-md-3">
-    <label for="labels" class="form-label">Enter your labels:</label>
-    <input id="labels" type="text" class="texte" placeholder="Label Name">
-    <button id="labelButton" class="btn btn-primary col-md-4 " (click)="addNewLabel()">Add Label</button>
+  <div class="col-md-3" id="labelInput">
+    <label class="form-label" for="labels">Enter your labels:</label>
+    <input class="texte" id="labels" placeholder="Label Name" type="text">
+    <button (click)="addNewLabel()" class="btn btn-primary col-md-4 " id="labelButton">Add Label</button>
   </div>
   <ul *ngIf="listOfLabels" class="list-group list-group-horizontal flex-wrap">
     <li *ngFor="let label of listOfLabels" class=" list-group-item">
-      <button class="btn {{label.color}}"   [ngClass]="{ 'active': label.active }" (click)="setActiveLabel(label)">
+      <button (click)="setActiveLabel(label)" [ngClass]="{ 'active': label.active }" class="btn btn-{{label.color}}">
         {{ label.label }}
       </button>
     </li>
   </ul>
 
 </div>
-  <div class="container">
-  <p id='document' (click)="setLabel()">
+<div class="container">
+  <p (click)="setLabel()" id='document'>
     <span [innerHTML]="this.texte"></span>
   </p>
-  </div>
+</div>
