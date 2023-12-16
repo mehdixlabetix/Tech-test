@@ -3,6 +3,7 @@ import {CommonModule} from '@angular/common';
 import {RouterOutlet} from '@angular/router';
 import textJson from '../assets/test.json';
 import {ToastrService} from "ngx-toastr";
+import {HttpClient} from '@angular/common/http';
 
 interface Label {
   label: String;
@@ -31,7 +32,7 @@ export class AppComponent implements OnInit {
   labeledText: Word[] = [];
   colors = ['primary', 'secondary', 'success', 'danger', 'dark'];
 
-  constructor(private toastr: ToastrService) {
+  constructor(private toastr: ToastrService,private http: HttpClient) {
   }
 
   ngOnInit(): void {
@@ -45,8 +46,14 @@ export class AppComponent implements OnInit {
 
   addNewLabel(): void {
     const labelsElement = <HTMLInputElement>document.getElementById('labels');
+
     if (labelsElement && labelsElement.value) {
-      const userInput = labelsElement.value; // Now userInput is guaranteed to be defined
+      const userInput = labelsElement.value;
+      if (this.listOfLabels.find((label) => label.label === userInput)) {
+        this.toastr.warning("label already exists", 'warning', {
+          timeOut: 1000,        });
+      labelsElement.value = '';
+      throw new Error('label already exists');}
       this.listOfLabels.push({
         label: userInput,
         active: false,
@@ -54,7 +61,10 @@ export class AppComponent implements OnInit {
       });
       labelsElement.value = '';
     } else {
-      throw new Error('input is empty');
+      this.toastr.error("Input is empty", 'error', {
+        timeOut: 1000,
+
+      });
     }
   }
 
@@ -73,8 +83,7 @@ export class AppComponent implements OnInit {
       e.stopImmediatePropagation();
       const selectedLabel = this.listOfLabels.find((label) => label.active);
       const target = e.target as HTMLElement;
-      const targetParent = target.parentElement as HTMLElement;
-      const clickedWord = target.innerHTML;
+      const clickedWord = target.innerHTML.match(/\w+/g)![0];
       if(this.labeledText.find((word) =>{return  word.word === clickedWord && word.label == selectedLabel!.label})){
         return ;
       }
@@ -84,38 +93,14 @@ export class AppComponent implements OnInit {
       if (!this.labeledText.find((word) => word.word === clickedWord && word.label == selectedLabel!.label)) {
         const startIndex = textJson.document.indexOf(clickedWord);
         const endIndex = startIndex + clickedWord.length;
-        const postWord = this.labeledText.find((word) => {
-          return ((textJson.document.substring(endIndex, word.start).match(/\W+/g)?.length==1) && word.label == selectedLabel!.label)
-        });
-        const preWord = this.labeledText.find((word) => {
-          return ((textJson.document.substring(<number>word.end, startIndex).match(/\W+/g)?.length==1) && word.label == selectedLabel!.label)
-        });
         const color = selectedLabel!.color;
-        console.log(preWord, postWord, startIndex, endIndex, clickedWord)
-        if (preWord) {
-          console.log("pre")
-          preWord.end = endIndex;
-          preWord.word = textJson.document.substring(preWord.start!, preWord.end!);
-          target.className = `badge text-bg-${color}`;
-
-        }
-        if (postWord) {
-          console.log("post")
-          postWord.start = startIndex;
-          postWord.word = textJson.document.substring(postWord.start!, postWord.end!);
-          target.className = `badge text-bg-${color}`;
-
-        }
-        if (preWord == undefined && postWord == undefined) {
-          console.log(clickedWord.match(/\w+/g)![0])
-          const selectedWord = this.texteTab.find((word) => word.word === clickedWord.match(/\w+/g)![0]);
-          console.log("zedt")
+          const selectedWord = this.texteTab.find((word) => word.word === clickedWord);
           selectedWord!.start = startIndex;
           selectedWord!.end = endIndex;
           selectedWord!.label = selectedLabel!.label;
           target.className = `badge text-bg-${color}`;
+          target.innerHTML= `${clickedWord} <span class="badge text-bg-light "> ${selectedLabel!.label}</span>`;
           this.labeledText.push(selectedWord!);
-        }
         console.log(this.labeledText)
       } else {
         this.toastr.warning("you haven't clicked on a word", '', {
@@ -127,10 +112,23 @@ export class AppComponent implements OnInit {
 
     });
   }
-
-  //todo: add a function to update annotations
+   save(){
+    this.http.post('https://localhost:3000/api/annotations',this.labeledText)
+      .subscribe(data => {
+        console.log(data)
+        this.updateAnnotation();
+        this.toastr.success('saved', '', {
+          timeOut: 1000,
+          toastClass:
+            'h-20  w-56 absolute top-0 right-0.5 transform -translate-x-10 text-gray-500 p-3 rounded-md  bg-green-200',
+        });
+      });
+   }
   updateAnnotation() {
+    this.http.get('https://localhost:3000/api/annotations')
+      .subscribe(data => {
 
+        console.log(data)      });
   }
 
 }
