@@ -16,6 +16,7 @@ Make sure you have Node.js and npm installed on your machine.
    git clone https://github.com/mehdixlabetix/Tech-test.git
    cd your-project
    npm install
-2. Run the server
+2. Run server:
+
     ```bash
     ng serve
