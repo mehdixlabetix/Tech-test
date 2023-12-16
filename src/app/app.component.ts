@@ -1,7 +1,6 @@
-import {Component, OnInit} from '@angular/core';
+import {Component,  OnInit} from '@angular/core';
 import {CommonModule} from '@angular/common';
 import {RouterOutlet} from '@angular/router';
-import textJson from '../assets/test.json';
 import {ToastrService} from "ngx-toastr";
 import {HttpClient} from '@angular/common/http';
 
@@ -31,18 +30,16 @@ export class AppComponent implements OnInit {
   listOfLabels: Label[] = [];
   labeledText: Word[] = [];
   colors = ['primary', 'secondary', 'success', 'danger', 'dark'];
-
+  texteJson: any;
+  document_uuid = '9c106998-b99d-4ea1-8a3a-699ccfb09d05';
   constructor(private toastr: ToastrService,private http: HttpClient) {
   }
 
   ngOnInit(): void {
-    textJson.document.match(/(?:\W+)|\w+/g)?.forEach((word) => {
-      this.texteTab.push({word: word, label: ''});
-    });
-    for (const word of this.texteTab) {
-      this.texte += `<span>${word.word} </span>`;
-    }
+    this.initText();
+
   }
+
 
   addNewLabel(): void {
     const labelsElement = <HTMLInputElement>document.getElementById('labels');
@@ -91,7 +88,7 @@ export class AppComponent implements OnInit {
          this.labeledText.splice(this.labeledText.findIndex((word) =>{return  word.word === clickedWord && word.label != selectedLabel!.label}),1
        )     }
       if (!this.labeledText.find((word) => word.word === clickedWord && word.label == selectedLabel!.label)) {
-        const startIndex = textJson.document.indexOf(clickedWord);
+        const startIndex = this.texteJson.content.indexOf(clickedWord);
         const endIndex = startIndex + clickedWord.length;
         const color = selectedLabel!.color;
           const selectedWord = this.texteTab.find((word) => word.word === clickedWord);
@@ -113,10 +110,10 @@ export class AppComponent implements OnInit {
     });
   }
    save(){
-    this.http.post('https://localhost:3000/api/annotations',this.labeledText)
+    this.http.post(' http://127.0.0.1:8000/api/annotation/',{"document_uuid": this.document_uuid,"annotations": this.labeledText})
       .subscribe(data => {
         console.log(data)
-        this.updateAnnotation();
+        this.downloadJson()
         this.toastr.success('saved', '', {
           timeOut: 1000,
           toastClass:
@@ -124,11 +121,53 @@ export class AppComponent implements OnInit {
         });
       });
    }
-  updateAnnotation() {
-    this.http.get('https://localhost:3000/api/annotations')
+  downloadJson() {
+    this.http.get(`http://127.0.0.1:8000/api/annotations/${this.document_uuid}/`)
       .subscribe(data => {
-
-        console.log(data)      });
+        let fileName = 'annotations.json';
+        let a = document.createElement('a');
+        a.download = fileName;
+        const str = JSON.stringify(data);
+        const bytes= new TextEncoder().encode(str);
+        a.href = window.URL.createObjectURL(new Blob([bytes], {type: 'application/json'}));
+        a.click();
+             });
   }
+  async initText() {
+    try {
+      this.texteJson = await this.http
+        .get(`http://127.0.0.1:8000/api/documents/${this.document_uuid}/`)
+        .toPromise();
+
+      console.log(this.texteJson);
+
+      this.texteJson.content.match(/(?:\W+)|\w+/g)?.forEach((word: string) => {
+        this.texteTab.push({ word: word, label: '' });
+      });
+
+      for (const word of this.texteTab) {
+        this.texte += `<span>${word.word} </span>`;
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+   annotationsClear() {
+
+     this.http.delete(`http://127.0.0.1:8000/api/documents/${this.document_uuid}/annotations/`).subscribe(
+      data => {
+        console.log(data)
+        this.toastr.success('cleared', 'Success', {
+          timeOut: 1000,
+          toastClass:
+            'h-20  w-56 absolute top-0 right-0.5 transform -translate-x-10 text-black-500 p-3 rounded-md  bg-green-200',
+        });
+      },
+      error => {
+        console.log(error);
+      }
+    )
+  }
+
 
 }
